@@ -11,9 +11,11 @@ Dark fantasy AI GM prototype with a backend and frontend skeleton.
 ## Project structure
 - `backend/` — game API and AI service
 - `frontend/` — browser UI
-- `README.md` — project overview
+- `.gitignore` — local env and cache exclusions
 
-## Backend setup
+## Local development
+
+### 1) Backend
 
 ```bash
 cd backend
@@ -23,20 +25,24 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Set environment variables:
+Optional environment variables:
 
 ```bash
 export LLM_URL="http://localhost:11434/v1/chat/completions"
 export LLM_MODEL="gpt-4o-mini"
 ```
 
-## Frontend setup
+### 2) Frontend
 
 ```bash
 cd frontend
 npm install
-npm run dev
+npm run dev -- --host 0.0.0.0
 ```
+
+Then open:
+- Frontend: http://localhost:5173
+- Backend health: http://localhost:8000/api/health
 
 ## MVP concept
 
@@ -47,9 +53,18 @@ npm run dev
 
 ## Current status
 
-This repo is an MVP skeleton. The next steps are:
+This repo is an MVP skeleton. The next stages are:
 1. add real DB persistence
 2. add campaign creation flow
 3. add full quest/NPC state
 4. add combat and inventory rules
 5. add richer world-generation prompts
+
+## Recommended next milestone
+
+Focus on a single playable loop:
+- create a character
+- enter the city
+- get the first quest
+- follow the quest through the monastery and catacombs
+- resolve the first major decision with AI GM narration
