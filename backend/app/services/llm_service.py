@@ -1,9 +1,26 @@
+from __future__ import annotations
+
+import json
 import os
 from typing import Any, Dict
 
 import httpx
 
 from app.config import LLM_MODEL, LLM_URL
+
+
+DEFAULT_FALLBACK = {
+    "narrative": "Колокола вдалеке звенят, и вы чувствуете, как тень под городом пытается шевельнуться. Серебряный Логов дыханием затаил ожидание.",
+    "outcome": "exploration",
+    "summary": "Вы ощущаете приближение древней угрозы.",
+    "hp_change": 0,
+    "stat_changes": {"will": 1},
+    "inventory_changes": [],
+    "quest_updates": [],
+    "npc_updates": [],
+    "world_flags": {"shadow_in_city": True},
+    "next_scene_hint": "Брат Эдмон ждёт в монастыре у тайного архива.",
+}
 
 
 def format_context_for_prompt(context: Dict[str, Any]) -> str:
@@ -17,6 +34,19 @@ Inventory: {context.get('inventory')}
 Recent events: {context.get('recent_events')}
 World flags: {context.get('world_flags')}
 Player action: {context.get('player_action')}
+
+Требуемый JSON формат:
+{{
+  "narrative": "...",
+  "outcome": "success|failure|neutral|exploration|dialogue|combat",
+  "summary": "...",
+  "hp_change": 0,
+  "stat_changes": {{"strength": 0, "agility": 0, "intellect": 0, "will": 0}},
+  "inventory_changes": [],
+  "quest_updates": [],
+  "npc_updates": [],
+  "world_flags": {{}}
+}}
     """.strip()
 
 
@@ -28,8 +58,8 @@ async def call_ai_gm(context: Dict[str, Any]) -> Dict[str, Any]:
                 "role": "system",
                 "content": (
                     "Ты — ведущий тёмного фэнтези. "
-                    "Пиши атмосферно, чётко и в стиле dark fantasy. "
-                    "Сохраняй непрерывность сюжета и возвращай валидный JSON."
+                    "Пиши атмосферно, но чётко. "
+                    "Sсохраняй контекст истории и возвращай только валидный JSON."
                 ),
             },
             {"role": "user", "content": format_context_for_prompt(context)},
@@ -40,39 +70,15 @@ async def call_ai_gm(context: Dict[str, Any]) -> Dict[str, Any]:
         async with httpx.AsyncClient(timeout=60) as client:
             response = await client.post(LLM_URL, json=payload)
             response.raise_for_status()
-            raw = response.json()
-            content = raw["choices"][0]["message"]["content"]
+            data = response.json()
+            content = data["choices"][0]["message"]["content"]
             return parse_json(content)
     except Exception:
-        return {
-            "narrative": "Колокола вдалеке звенят, и в воздухе чувствуется холодная тьма. Пепел шевелится у ваших ног, как будто мир сам пытается напомнить о древней угрозе.",
-            "outcome": "exploration",
-            "summary": "Вы идёте вперёд и сталкиваетесь с тёмной предчувствием.",
-            "hp_change": 0,
-            "stat_changes": {"will": 1},
-            "inventory_changes": [],
-            "quest_updates": [],
-            "npc_updates": [],
-            "world_flags": {"shadow_in_city": True},
-            "next_scene_hint": "Слышен шёпот из глубины монастыря.",
-        }
+        return DEFAULT_FALLBACK
 
 
 def parse_json(raw: str) -> Dict[str, Any]:
-    import json
-
     try:
         return json.loads(raw)
     except Exception:
-        return {
-            "narrative": raw,
-            "outcome": "neutral",
-            "summary": "Сюжет разворачивается.",
-            "hp_change": 0,
-            "stat_changes": {},
-            "inventory_changes": [],
-            "quest_updates": [],
-            "npc_updates": [],
-            "world_flags": {},
-            "next_scene_hint": "Нужно продолжать расследование.",
-        }
+        return DEFAULT_FALLBACK

@@ -1,11 +1,41 @@
+from __future__ import annotations
+
 from app.schemas.turn import TurnRequest, TurnResponse
 from app.services.llm_service import call_ai_gm
-from app.services.world_service import build_world_snapshot
+from app.services.world_service import get_world_snapshot, update_after_turn
 
 
 class GameService:
+    def create_campaign(self, payload):
+        from app.services.world_service import create_campaign as create_campaign_fn
+        return create_campaign_fn(payload.title, payload.setting, payload.tone)
+
+    def create_character(self, campaign_id: str, payload):
+        from app.services.world_service import create_character as create_character_fn
+        return create_character_fn(
+            campaign_id,
+            payload.player_id,
+            payload.name,
+            payload.class_name,
+            payload.strength,
+            payload.agility,
+            payload.intellect,
+            payload.will,
+        )
+
+    def get_world(self, campaign_id: str):
+        from app.services.world_service import get_campaign_snapshot
+        campaign = get_campaign_snapshot(campaign_id)
+        return {
+            "campaign": campaign,
+            "world_flags": campaign["world_flags"],
+            "locations": campaign["locations"],
+            "npcs": campaign["npcs"],
+            "quests": campaign["quests"],
+        }
+
     async def process_turn(self, campaign_id: str, turn: TurnRequest) -> TurnResponse:
-        snapshot = build_world_snapshot(campaign_id, turn.character_id)
+        snapshot = get_world_snapshot(campaign_id, turn.character_id)
 
         context = {
             "campaign": campaign_id,
@@ -20,6 +50,7 @@ class GameService:
         }
 
         ai_result = await call_ai_gm(context)
+        update_after_turn(campaign_id, turn.character_id, ai_result)
 
         return TurnResponse(
             turn_id="turn_0001",

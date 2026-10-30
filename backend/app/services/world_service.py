@@ -1,45 +1,29 @@
+from __future__ import annotations
+
 from typing import Any, Dict
+
+from app.services.world_state import GameWorldStore
 from app.schemas.world import WorldSnapshot
 
 
-def build_world_snapshot(campaign_id: str, character_id: str) -> WorldSnapshot:
-    return WorldSnapshot(
-        campaign_id=campaign_id,
-        character={
-            "id": character_id,
-            "name": "Эдрик",
-            "class_name": "Рыцарь Пепельного Ордена",
-            "hp": 24,
-            "max_hp": 24,
-            "strength": 12,
-            "agility": 8,
-            "intellect": 7,
-            "will": 10,
-        },
-        location={
-            "id": "loc_serb_1",
-            "name": "Серебряный Логов",
-            "description": "Город дышит пеплом.",
-        },
-        npcs=[
-            {"id": "npc_adel", "name": "Адела Серый Молох", "role": "алхимик"},
-            {"id": "npc_edmon", "name": "Брат Эдмон", "role": "монах"},
-            {"id": "npc_mark", "name": "Марк Скис", "role": "наёмник"},
-        ],
-        quests=[
-            {"id": "quest_1", "title": "Пепельный Отголосок", "status": "active"}
-        ],
-        inventory=[
-            {"id": "item_1", "name": "Пепельный факел", "type": "light"},
-            {"id": "item_2", "name": "Крючок для катакомб", "type": "tool"},
-        ],
-        recent_events=[
-            {"message": "Колокола церкви звенели без причины."},
-            {"message": "Из-под площади просочилась тень."},
-        ],
-        world_flags={
-            "catacombs_open": False,
-            "monastery_locked": True,
-            "shadow_in_city": True,
-        },
-    )
+store = GameWorldStore()
+
+
+def create_campaign(title: str, setting: str = "dark_fantasy", tone: str = "dark_fantasy") -> Dict[str, Any]:
+    return store.create_campaign(title, setting, tone)
+
+
+def create_character(campaign_id: str, player_id: str, name: str, class_name: str, strength: int, agility: int, intellect: int, will: int) -> Dict[str, Any]:
+    return store.create_character(campaign_id, player_id, name, class_name, strength, agility, intellect, will)
+
+
+def get_world_snapshot(campaign_id: str, character_id: str) -> WorldSnapshot:
+    return store.get_world_snapshot(campaign_id, character_id)
+
+
+def get_campaign_snapshot(campaign_id: str) -> Dict[str, Any]:
+    return store.get_campaign(campaign_id)
+
+
+def update_after_turn(campaign_id: str, character_id: str, ai_result: Dict[str, Any]) -> None:
+    store.update_campaign_after_turn(campaign_id, character_id, ai_result)
