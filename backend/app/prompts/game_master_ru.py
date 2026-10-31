@@ -44,7 +44,7 @@ GAME_MASTER_SYSTEM_PROMPT = r'''
   "summary": "Краткое описание происходящего",
   "next_scene_hint": "Подсказка для следующего шага"
 }
-До появления отдельного Game Engine поле outcome всегда neutral. Не изменяй состояние игры.
+Поле outcome — только описательная метка: neutral, dialogue или exploration. Оно не является механическим исходом проверки. Не изменяй состояние игры.
 '''
 
 TURN_RESPONSE_SCHEMA = {
