@@ -12,6 +12,13 @@ export type AttributeDefinition = {
   description: string;
 };
 
+export type SkillDefinition = {
+  id: string;
+  name: string;
+  description: string;
+  ability: AttributeId;
+};
+
 export type CharacterAttributes = Record<AttributeId, number>;
 
 export type Character = {

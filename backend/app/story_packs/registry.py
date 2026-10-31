@@ -10,6 +10,7 @@ STORY_PACKS: dict[str, dict[str, Any]] = {
         "status": "available",
         "presentation": {
             "attribute_overrides": {},
+            "skill_overrides": {},
         },
         "initial_world": {
             "current_location_id": "cathedral_approach",
