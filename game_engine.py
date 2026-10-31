@@ -33,23 +33,27 @@ class GameEngine:
                     "Leave the ruined keep before sunrise",
                 ],
                 "state_summary": "The world feels restless and the ancient place is watching.",
-                "flags": {"threat_level": 2},
+                "flags": {"nightfall": False, "ruin_vision": False, "threat_level": 2},
+                "inventory": game_state.inventory,
+                "morality": game_state.morality,
             }
 
         game_state.current_scene = str(payload.get("scene") or game_state.current_scene)
         game_state.history.append(game_state.current_scene)
 
-        for key, value in (payload.get("flags") or {}).items():
-            game_state.world_flags[key] = value
+        flags = payload.get("flags") or {}
+        if isinstance(flags, dict):
+            for key, value in flags.items():
+                game_state.world_flags[key] = value
 
-        if "inventory" in payload:
+        if "inventory" in payload and isinstance(payload["inventory"], list):
             game_state.inventory = payload["inventory"]
 
         if "morality" in payload:
-            game_state.morality = int(payload["morality"])
-
-        if "choice" in payload and isinstance(payload["choice"], str):
-            choice = payload["choice"]
+            try:
+                game_state.morality = int(payload["morality"])
+            except (TypeError, ValueError):
+                pass
 
         return {
             "scene": game_state.current_scene,
