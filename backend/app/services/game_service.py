@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from app.engine.action_resolution import resolve_action_check
-
 import uuid
 
+from app.engine.action_resolution import resolve_action_check
 from app.schemas.turn import TurnRequest, TurnResponse
 from app.services.llm_service import call_ai_gm
 from app.services.world_service import get_world_snapshot, update_after_turn
@@ -14,9 +13,10 @@ class GameService:
         from app.services.world_service import create_campaign as create_campaign_fn
 
         return create_campaign_fn(
-            payload.title,
-            payload.setting,
-            payload.tone,
+            title=payload.title,
+            setting=payload.setting,
+            tone=payload.tone,
+            story_pack_id=getattr(payload, "story_pack_id", None),
         )
 
     def create_character(self, campaign_id: str, payload):
@@ -57,7 +57,6 @@ class GameService:
 
         character = snapshot.character
 
-        # Python определяет, нужна ли проверка, и сам бросает D20.
         mechanical_check = resolve_action_check(
             turn.action_text,
             character,
@@ -76,7 +75,6 @@ class GameService:
             "mechanical_check": mechanical_check,
         }
 
-        # Ведущий описывает сцену с учётом уже установленного результата.
         ai_result = await call_ai_gm(context)
 
         update_after_turn(

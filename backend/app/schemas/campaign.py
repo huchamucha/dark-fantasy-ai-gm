@@ -30,6 +30,7 @@ class CampaignCreate(BaseModel):
     title: str
     setting: str = "dark_fantasy"
     tone: str = "dark_fantasy"
+    story_pack_id: Optional[str] = None
 
 
 class Campaign(BaseModel):
@@ -37,6 +38,7 @@ class Campaign(BaseModel):
     title: str
     setting: str
     tone: str
+    story_pack_id: str = "dark_fantasy"
     status: str = "active"
     current_location_id: Optional[str] = None
     main_quest_id: Optional[str] = None

@@ -1,3 +1,19 @@
+export type AttributeId =
+  | "strength"
+  | "dexterity"
+  | "constitution"
+  | "intelligence"
+  | "wisdom"
+  | "charisma";
+
+export type AttributeDefinition = {
+  id: AttributeId;
+  name: string;
+  description: string;
+};
+
+export type CharacterAttributes = Record<AttributeId, number>;
+
 export type Character = {
   id: string;
   name: string;
@@ -5,13 +21,13 @@ export type Character = {
   level: number;
   hp: number;
   max_hp: number;
+} & CharacterAttributes;
 
-  strength: number;
-  dexterity: number;
-  constitution: number;
-  intelligence: number;
-  wisdom: number;
-  charisma: number;
+export type StoryPack = {
+  id: string;
+  name: string;
+  description: string;
+  status: string;
 };
 
 export type TurnResponse = {

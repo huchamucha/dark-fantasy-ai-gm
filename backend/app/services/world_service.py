@@ -13,8 +13,14 @@ def create_campaign(
     title: str,
     setting: str = "dark_fantasy",
     tone: str = "dark_fantasy",
+    story_pack_id: str | None = None,
 ) -> dict[str, Any]:
-    return store.create_campaign(title, setting, tone)
+    return store.create_campaign(
+        title=title,
+        setting=setting,
+        tone=tone,
+        story_pack_id=story_pack_id,
+    )
 
 
 def create_character(
@@ -29,7 +35,6 @@ def create_character(
     wisdom: int,
     charisma: int,
 ) -> dict[str, Any]:
-
     return store.create_character(
         campaign_id,
         player_id,

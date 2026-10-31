@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import uuid
+from copy import deepcopy
 from typing import Any
 
 from app.schemas.world import WorldSnapshot
+from app.story_packs.registry import get_initial_world
 
 
 class GameWorldStore:
@@ -16,48 +18,32 @@ class GameWorldStore:
         title: str,
         setting: str = "dark_fantasy",
         tone: str = "dark_fantasy",
+        story_pack_id: str | None = None,
     ) -> dict[str, Any]:
+        selected_pack = story_pack_id or setting
+        initial_world = get_initial_world(selected_pack)
+
         campaign_id = uuid.uuid4().hex
 
         campaign = {
             "id": campaign_id,
             "title": title,
-            "setting": setting,
+            "story_pack_id": selected_pack,
+            "setting": selected_pack,
             "tone": tone,
             "status": "active",
-            "current_location_id": "cathedral_approach",
-            "main_quest_id": "quest_ashen_crown",
-            "world_flags": {"shadow_in_city": False},
-            "locations": [
-                {
-                    "id": "cathedral_approach",
-                    "name": "Подступы к собору",
-                    "description": "Туман и тление на краю города.",
-                    "danger_level": 1,
-                }
-            ],
-            "npcs": [
-                {
-                    "id": "brother_eldric",
-                    "name": "Брат Эдрик",
-                    "role": "священник",
-                    "mood": "настороженный",
-                    "dialogue": "Ты уже слишком долго стоишь в тени.",
-                }
-            ],
-            "quests": [
-                {
-                    "id": "quest_ashen_crown",
-                    "title": "Пепельная Корона",
-                    "status": "active",
-                    "description": "Рассечь тьму, которая шевелится под старым городом.",
-                }
-            ],
+            "current_location_id": initial_world["current_location_id"],
+            "main_quest_id": initial_world["main_quest_id"],
+            "world_flags": initial_world["world_flags"],
+            "locations": initial_world["locations"],
+            "npcs": initial_world["npcs"],
+            "quests": initial_world["quests"],
+            "characters": [],
             "recent_events": [],
         }
 
         self.campaigns[campaign_id] = campaign
-        return campaign
+        return deepcopy(campaign)
 
     def create_character(
         self,
@@ -72,63 +58,74 @@ class GameWorldStore:
         wisdom: int,
         charisma: int,
     ) -> dict[str, Any]:
-
-        if campaign_id not in self.campaigns:
-            raise ValueError(f"Campaign {campaign_id} not found")
+        campaign = self.get_campaign(campaign_id)
 
         character_id = uuid.uuid4().hex
 
         character = {
             "id": character_id,
             "player_id": player_id,
+            "campaign_id": campaign_id,
             "name": name,
             "class_name": class_name,
             "level": 1,
             "hp": 18,
             "max_hp": 18,
-
             "strength": strength,
             "dexterity": dexterity,
             "constitution": constitution,
             "intelligence": intelligence,
             "wisdom": wisdom,
             "charisma": charisma,
-
             "proficiency_bonus": 2,
             "proficient_skills": [],
-
             "gold": 0,
-            "location_id": self.campaigns[campaign_id]["current_location_id"],
+            "location_id": campaign["current_location_id"],
             "inventory": [],
             "status_flags": {},
             "notes": {},
         }
 
         self.characters[character_id] = character
-        self.campaigns[campaign_id].setdefault("characters", []).append(character_id)
+        campaign["characters"].append(character_id)
 
-        return character
+        return deepcopy(character)
 
     def get_campaign(self, campaign_id: str) -> dict[str, Any]:
         if campaign_id not in self.campaigns:
             raise ValueError(f"Campaign {campaign_id} not found")
 
-        return self.campaigns[campaign_id]
+        return deepcopy(self.campaigns[campaign_id])
+
+    def _get_owned_character(
+        self,
+        campaign_id: str,
+        character_id: str,
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        campaign = self.campaigns.get(campaign_id)
+        if campaign is None:
+            raise ValueError(f"Campaign {campaign_id} not found")
+
+        character = self.characters.get(character_id)
+        if character is None:
+            raise ValueError(f"Character {character_id} not found")
+
+        if character_id not in campaign["characters"]:
+            raise ValueError(
+                f"Character {character_id} does not belong to campaign {campaign_id}"
+            )
+
+        return campaign, character
 
     def get_world_snapshot(
         self,
         campaign_id: str,
         character_id: str,
     ) -> WorldSnapshot:
-
-        if campaign_id not in self.campaigns:
-            raise ValueError(f"Campaign {campaign_id} not found")
-
-        if character_id not in self.characters:
-            raise ValueError(f"Character {character_id} not found")
-
-        campaign = self.campaigns[campaign_id]
-        character = self.characters[character_id]
+        campaign, character = self._get_owned_character(
+            campaign_id,
+            character_id,
+        )
 
         location = next(
             (
@@ -138,21 +135,21 @@ class GameWorldStore:
             ),
             {
                 "id": character["location_id"],
-                "name": "Пепельный перекрёсток",
-                "description": "Город дышит тишиной и страхом.",
+                "name": "Неизвестное место",
+                "description": "Окружающий мир пока не описан.",
                 "danger_level": 1,
             },
         )
 
         return WorldSnapshot(
             campaign_id=campaign_id,
-            character=character,
-            location=location,
-            npcs=campaign.get("npcs", []),
-            quests=campaign.get("quests", []),
-            inventory=character.get("inventory", []),
-            recent_events=campaign.get("recent_events", []),
-            world_flags=campaign.get("world_flags", {}),
+            character=deepcopy(character),
+            location=deepcopy(location),
+            npcs=deepcopy(campaign.get("npcs", [])),
+            quests=deepcopy(campaign.get("quests", [])),
+            inventory=deepcopy(character.get("inventory", [])),
+            recent_events=deepcopy(campaign.get("recent_events", [])),
+            world_flags=deepcopy(campaign.get("world_flags", {})),
         )
 
     def update_campaign_after_turn(
@@ -162,14 +159,10 @@ class GameWorldStore:
         player_action: str,
         ai_result: dict[str, Any],
     ) -> None:
-
-        if campaign_id not in self.campaigns:
-            raise ValueError(f"Campaign {campaign_id} not found")
-
-        if character_id not in self.characters:
-            raise ValueError(f"Character {character_id} not found")
-
-        campaign = self.campaigns[campaign_id]
+        campaign, _ = self._get_owned_character(
+            campaign_id,
+            character_id,
+        )
 
         event = {
             "event_id": uuid.uuid4().hex,
