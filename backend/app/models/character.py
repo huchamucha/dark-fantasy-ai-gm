@@ -1,11 +1,5 @@
-from pydantic import BaseModel
+"""Совместимый импорт модели создания персонажа."""
 
+from app.schemas.character import CharacterCreate
 
-class CharacterCreate(BaseModel):
-    player_id: str
-    name: str
-    class_name: str
-    strength: int = 10
-    agility: int = 10
-    intellect: int = 10
-    will: int = 10
+__all__ = ["CharacterCreate"]

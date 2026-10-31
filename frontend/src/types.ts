@@ -2,12 +2,16 @@ export type Character = {
   id: string;
   name: string;
   class_name: string;
+  level: number;
   hp: number;
   max_hp: number;
+
   strength: number;
-  agility: number;
-  intellect: number;
-  will: number;
+  dexterity: number;
+  constitution: number;
+  intelligence: number;
+  wisdom: number;
+  charisma: number;
 };
 
 export type TurnResponse = {
