@@ -59,9 +59,11 @@ def extract_json_object(text: str) -> str:
     return "{}"
 
 
-def parse_json_response(raw: str) -> dict[str, Any]:
+def parse_json_response(raw: str | dict[str, Any] | None) -> dict[str, Any]:
     if raw is None:
         return {}
+    if isinstance(raw, dict):
+        return raw
 
     text = str(raw).strip()
     if not text:
