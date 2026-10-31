@@ -1,70 +1,89 @@
 # Dark Fantasy AI GM
 
-Dark fantasy AI GM prototype with a backend and frontend skeleton.
+A local dark-fantasy game master powered by LM Studio and Qwen.
 
-## Stack
-- Backend: FastAPI + Python
-- Frontend: React + TypeScript + Vite
-- AI: OpenAI-compatible API
-- Storage: PostgreSQL-ready models, with JSON state structure for MVP
+This project is a lightweight starter for a text-first GM loop:
+- create a session
+- advance story with player input or choice
+- ask the model for narration, options and world state
+- keep the session state in memory for the next step
 
-## Project structure
-- `backend/` — game API and AI service
-- `frontend/` — browser UI
-- `.gitignore` — local env and cache exclusions
+It is meant to be the foundation for a future RPG loop with:
+- richer world state
+- inventory and quests
+- scene selection
+- image generation layer
+- interactive game UI
 
-## Local development
+## Tech stack
 
-### 1) Backend
+- Python 3.11+
+- Flask
+- LM Studio OpenAI-compatible API
+- Qwen2.5-7B-Instruct-GGUF (recommended)
+
+## Local setup
+
+1. Install LM Studio.
+2. Download a model such as `Qwen2.5-7B-Instruct-GGUF`.
+3. Enable Local Server in LM Studio.
+4. Create a `.env` file from `.env.example` and adjust the model name if necessary.
 
 ```bash
-cd backend
+cp .env.example .env
+```
+
+5. Install dependencies:
+
+```bash
 python -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Optional environment variables:
+6. Start the API:
 
 ```bash
-export LLM_URL="http://localhost:11434/v1/chat/completions"
-export LLM_MODEL="gpt-4o-mini"
+python app.py
 ```
 
-### 2) Frontend
+7. Check health:
 
 ```bash
-cd frontend
-npm install
-npm run dev -- --host 0.0.0.0
+curl http://localhost:5000/api/health
 ```
 
-Then open:
-- Frontend: http://localhost:5173
-- Backend health: http://localhost:8000/api/health
+8. Create a session:
 
-## MVP concept
+```bash
+curl -X POST http://localhost:5000/api/session/new \
+  -H "Content-Type: application/json" \
+  -d '{"player_name":"Ash","title":"The Ashen Dominion","location":"Blackglass Keep","trait":"merciless curiosity"}'
+```
 
-- AI GM runs the campaign in dark fantasy tone
-- world state is stored as structured JSON
-- NPCs, quests, inventory, and locations are tracked
-- player actions are sent to the AI service and resolved into world updates
+9. Advance the story:
 
-## Current status
+```bash
+curl -X POST http://localhost:5000/api/story/next \
+  -H "Content-Type: application/json" \
+  -d '{
+    "session_id":"<session_id>",
+    "player_input":"I step toward the chapel door and listen for the whispers beneath the stone.",
+    "choice":"Open the cracked iron door"
+  }'
+```
 
-This repo is an MVP skeleton. The next stages are:
-1. add real DB persistence
-2. add campaign creation flow
-3. add full quest/NPC state
-4. add combat and inventory rules
-5. add richer world-generation prompts
+## Notes
 
-## Recommended next milestone
+- The project is intentionally text-first.
+- The current flow is a GM loop that uses an LM Studio-hosted local model.
+- The next expansion path is: richer state, quests, asset references, optional image generation, and browser UI.
 
-Focus on a single playable loop:
-- create a character
-- enter the city
-- get the first quest
-- follow the quest through the monastery and catacombs
-- resolve the first major decision with AI GM narration
+## Recommended next step
+
+After the base GM loop is stable, the next iteration should add:
+- narrative memory across sessions
+- inventory/quest tracking
+- scene templates and named NPCs
+- image generator for key scenes
+- optional web frontend for the game table
