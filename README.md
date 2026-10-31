@@ -1,89 +1,89 @@
-# Dark Fantasy AI GM
+# Dark Fantasy AI GM — локальная AI RPG-платформа
 
-A local dark-fantasy game master powered by LM Studio and Qwen.
+Проект развивается от прототипа ведущего тёмного фэнтези к универсальной локальной платформе одиночных AI-RPG и визуальных новелл. Цель — поддерживать разные истории и сеттинги на общем движке, подключая контент отдельными Story Packs.
 
-This project is a lightweight starter for a text-first GM loop:
-- create a session
-- advance story with player input or choice
-- ask the model for narration, options and world state
-- keep the session state in memory for the next step
+## Текущий основной контур
 
-It is meant to be the foundation for a future RPG loop with:
-- richer world state
-- inventory and quests
-- scene selection
-- image generation layer
-- interactive game UI
+**Основной контур разработки:** FastAPI backend + React/Vite frontend + LM Studio.
 
-## Tech stack
+- Backend: `backend/`, FastAPI, порт 8000.
+- Frontend: `frontend/`, React + TypeScript + Vite, порт 5173.
+- LLM: локальный OpenAI-compatible API LM Studio.
+- Текущая модель в локальной конфигурации: `qwen2.5-7b-instruct`.
+- Текущий адрес LM Studio: `http://localhost:1235/v1/chat/completions`.
 
-- Python 3.11+
-- Flask
-- LM Studio OpenAI-compatible API
-- Qwen2.5-7B-Instruct-GGUF (recommended)
+В корне также сохранён ранний Flask-прототип (`app.py`, `game_engine.py`, `game_state.py`, `llm_client.py`, `prompts.py`). Он является исторической/legacy-реализацией и не является основным приложением для дальнейшего развития. Не удалять его без отдельного решения и проверки совместимости.
 
-## Local setup
+## Документация
 
-1. Install LM Studio.
-2. Download a model such as `Qwen2.5-7B-Instruct-GGUF`.
-3. Enable Local Server in LM Studio.
-4. Create a `.env` file from `.env.example` and adjust the model name if necessary.
+- [Архитектура платформы](docs/ARCHITECTURE.md)
+- [План разработки](docs/ROADMAP.md)
+- [Технические решения](docs/TECHNICAL_DECISIONS.md)
+- [Аудит текущего состояния](docs/CURRENT_STATE.md)
+- [Промпты и правила ведущего](docs/PROMPTS.md)
+- [Ручные настройки и история изменений](docs/DEVELOPMENT_NOTES.md)
 
-```bash
-cp .env.example .env
+## Локальный запуск (Windows PowerShell)
+
+### 1. Подготовить окружение
+
+Установить Python 3.11+, Node.js LTS и LM Studio. Скачать совместимую GGUF-модель Qwen2.5 7B Instruct Q4_K_M, загрузить её в LM Studio и включить Local Server на порту 1235.
+
+В корне проекта создать `.env` на основе `.env.example` и указать точное имя модели, которое возвращает `GET http://localhost:1235/v1/models`.
+
+Пример `.env`:
+
+```dotenv
+LLM_URL=http://localhost:1235/v1/chat/completions
+LLM_MODEL=qwen2.5-7b-instruct
 ```
 
-5. Install dependencies:
+Не коммитить `.env`, ключи, локальные модели, кэши и виртуальные окружения.
 
-```bash
+### 2. Запустить backend
+
+В первом окне PowerShell:
+
+```powershell
+cd "путь\к\dark-fantasy-ai-gm\backend"
 python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
+python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-6. Start the API:
+Проверка: `http://localhost:8000/api/health` и Swagger `http://localhost:8000/docs`.
 
-```bash
-python app.py
+### 3. Запустить frontend
+
+Во втором окне PowerShell:
+
+```powershell
+cd "путь\к\dark-fantasy-ai-gm\frontend"
+npm install
+npm run dev
 ```
 
-7. Check health:
+Открыть `http://localhost:5173`. Vite проксирует `/api` на `http://localhost:8000`.
 
-```bash
-curl http://localhost:5000/api/health
-```
+### Порядок запуска
 
-8. Create a session:
+1. LM Studio: модель загружена, Local Server включён на 1235.
+2. FastAPI backend: порт 8000.
+3. Vite frontend: порт 5173.
 
-```bash
-curl -X POST http://localhost:5000/api/session/new \
-  -H "Content-Type: application/json" \
-  -d '{"player_name":"Ash","title":"The Ashen Dominion","location":"Blackglass Keep","trait":"merciless curiosity"}'
-```
+## Состояние реализации
 
-9. Advance the story:
+Уже есть стартовый игровой цикл создания кампании, создания персонажа и отправки действия ведущему. Добавлены базовые правила повествования и защита от прямого применения LLM-изменений состояния. Хранилище пока in-memory: прогресс теряется при перезапуске backend. SQLite, полноценный Game Engine, Story Pack loader, NPC memory и media pipeline остаются задачами следующих этапов.
 
-```bash
-curl -X POST http://localhost:5000/api/story/next \
-  -H "Content-Type: application/json" \
-  -d '{
-    "session_id":"<session_id>",
-    "player_input":"I step toward the chapel door and listen for the whispers beneath the stone.",
-    "choice":"Open the cracked iron door"
-  }'
-```
+## Важные ограничения текущей версии
 
-## Notes
+- LLM сейчас отвечает за повествование; механические исходы намеренно не рассчитываются.
+- HP, характеристики, инвентарь, квесты и world flags не должны меняться по произвольному JSON от модели.
+- Не считать наличие документации доказательством готовности функции.
+- Перед крупным рефакторингом читать фактическую ветку и проверять запуск.
+- Тесты и сборка должны выполняться в локальном окружении проекта; если они не запускались, не заявлять об успешной проверке.
 
-- The project is intentionally text-first.
-- The current flow is a GM loop that uses an LM Studio-hosted local model.
-- The next expansion path is: richer state, quests, asset references, optional image generation, and browser UI.
+## Цель ближайшего этапа
 
-## Recommended next step
-
-After the base GM loop is stable, the next iteration should add:
-- narrative memory across sessions
-- inventory/quest tracking
-- scene templates and named NPCs
-- image generator for key scenes
-- optional web frontend for the game table
+Стабилизировать игровой цикл, добавить тесты, затем вынести первую историю «Пепельная Корона» в Story Pack и перейти с in-memory состояния на SQLite. Главный критерий универсальности — две разные истории работают на одном движке и системе сохранений.
