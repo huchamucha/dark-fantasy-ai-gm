@@ -39,21 +39,52 @@ class LMStudioClient:
         return str(payload_json["choices"][0]["message"]["content"]).strip()
 
 
-def parse_json_response(raw: str) -> dict[str, Any]:
-    text = (raw or "").strip()
+def extract_json_object(text: str) -> str:
     if not text:
-        return {}
+        return "{}"
 
-    fenced = re.search(r"```(?:json)?\s*(.*?)\s*```", text, flags=re.DOTALL | re.IGNORECASE)
-    if fenced:
-        text = fenced.group(1).strip()
+    text = text.strip()
 
+    # remove code fences if present
+    text = re.sub(r"```(?:json)?\s*", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"\s*```\s*$", "", text, flags=re.IGNORECASE)
+
+    # prefer a complete JSON object block if present
+    match = re.search(r"\{.*\}", text, flags=re.DOTALL)
+    if match:
+        return match.group(0)
+
+    # fallback: try to isolate first likely object start/end
     start = text.find("{")
     end = text.rfind("}")
     if start != -1 and end != -1 and end > start:
-        text = text[start : end + 1]
+        return text[start : end + 1]
 
+    return "{}"
+
+
+def parse_json_response(raw: str) -> dict[str, Any]:
+    if raw is None:
+        return {}
+
+    text = str(raw).strip()
+    if not text:
+        return {}
+
+    candidate = extract_json_object(text)
     try:
-        return json.loads(text)
+        parsed = json.loads(candidate)
+        if isinstance(parsed, dict):
+            return parsed
+        return {"raw": parsed}
     except json.JSONDecodeError:
-        return {"raw": raw}
+        # try a second pass with minor cleanup for common model mistakes
+        cleaned = re.sub(r"(?<!\\)'", '"', candidate)
+        cleaned = cleaned.replace("True", "true").replace("False", "false").replace("None", "null")
+        try:
+            parsed = json.loads(cleaned)
+            if isinstance(parsed, dict):
+                return parsed
+            return {"raw": parsed}
+        except json.JSONDecodeError:
+            return {"raw": raw}
