@@ -21,7 +21,7 @@ class GameEngine:
 
     def advance(self, game_state: GameState, *, player_input: str = "", choice: str | None = None) -> dict[str, Any]:
         prompt = build_story_prompt(game_state, player_input=player_input, choice=choice)
-        raw_reply = self.client.ask(prompt, temperature=0.8, max_tokens=900)
+        raw_reply = self.client.ask(prompt, temperature=0.7, max_tokens=900)
         payload = parse_json_response(raw_reply)
 
         if not payload or "scene" not in payload:
