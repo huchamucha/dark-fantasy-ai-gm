@@ -44,17 +44,13 @@ def extract_json_object(text: str) -> str:
         return "{}"
 
     text = text.strip()
+    text = re.sub(r"```(?:json)?", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"```", "", text)
 
-    # remove code fences if present
-    text = re.sub(r"```(?:json)?\s*", "", text, flags=re.IGNORECASE)
-    text = re.sub(r"\s*```\s*$", "", text, flags=re.IGNORECASE)
-
-    # prefer a complete JSON object block if present
     match = re.search(r"\{.*\}", text, flags=re.DOTALL)
     if match:
         return match.group(0)
 
-    # fallback: try to isolate first likely object start/end
     start = text.find("{")
     end = text.rfind("}")
     if start != -1 and end != -1 and end > start:
@@ -72,19 +68,15 @@ def parse_json_response(raw: str) -> dict[str, Any]:
         return {}
 
     candidate = extract_json_object(text)
+    candidate = candidate.replace("True", "true")
+    candidate = candidate.replace("False", "false")
+    candidate = candidate.replace("None", "null")
+    candidate = candidate.replace("'", '"')
+
     try:
         parsed = json.loads(candidate)
         if isinstance(parsed, dict):
             return parsed
         return {"raw": parsed}
     except json.JSONDecodeError:
-        # try a second pass with minor cleanup for common model mistakes
-        cleaned = re.sub(r"(?<!\\)'", '"', candidate)
-        cleaned = cleaned.replace("True", "true").replace("False", "false").replace("None", "null")
-        try:
-            parsed = json.loads(cleaned)
-            if isinstance(parsed, dict):
-                return parsed
-            return {"raw": parsed}
-        except json.JSONDecodeError:
-            return {"raw": raw}
+        return {"raw": raw}
