@@ -1,10 +1,15 @@
+
 from fastapi import APIRouter, HTTPException
 
 from app.engine.attribute_catalog import get_attribute_catalog
 from app.engine.skill_catalog import get_skill_catalog
 from app.story_packs.registry import get_story_pack
+from app.routes.action_interpreter import router as action_interpreter_router
+
 
 router = APIRouter()
+
+router.include_router(action_interpreter_router)
 
 
 @router.get("/rules/attributes")

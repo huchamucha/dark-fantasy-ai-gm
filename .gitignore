@@ -12,7 +12,7 @@ build/
 *.sqlite
 *.sqlite3
 *.db
-models/
+/models/
 model_cache/
 cache/
 ComfyUI/output/
